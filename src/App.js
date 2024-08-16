@@ -18,14 +18,6 @@ function getWeatherIcon(wmoCode) {
   return icons.get(arr);
 }
 
-// function convertToFlag(countryCode) {
-//   const codePoints = countryCode
-//     .toUpperCase()
-//     .split("")
-//     .map((char) => 127397 + char.charCodeAt());
-//   return String.fromCodePoint(...codePoints);
-// }
-
 function formatDay(dateStr) {
   return new Intl.DateTimeFormat("en", {
     weekday: "short",
@@ -38,7 +30,6 @@ class App extends React.Component {
     weather: {},
     displayLocation: { city: "", flag: "" },
     locationNotFound: false,
-    // error: "",
   };
   debounceTimeout = null;
   controller = null;
@@ -56,7 +47,7 @@ class App extends React.Component {
         { signal: this.controller.signal }
       );
       const geoData = await geoRes.json();
-      console.log(geoData);
+      // console.log(geoData);
 
       if (!geoData.results) {
         this.setState({ locationNotFound: true, isLoading: false });
@@ -66,7 +57,6 @@ class App extends React.Component {
       const { latitude, longitude, timezone, name, country_code } =
         geoData.results.at(0);
       this.setState({
-        // displayLocation: `${name} ${convertToFlag(country_code)}`,
         displayLocation: { city: name, flag: country_code.toLowerCase() },
       });
 
@@ -80,7 +70,6 @@ class App extends React.Component {
     } catch (err) {
       if (err.name !== "AbortError") {
         console.error(err);
-        // this.setState({ error: err.message });
       }
     } finally {
       this.setState({ isLoading: false });
@@ -100,19 +89,7 @@ class App extends React.Component {
   // useEffect []
 
   componentDidMount() {
-    //fix the app start error
-    // this.fetchWeather();
     let storedLocation = localStorage.getItem("location");
-    //local storage not showing default value
-    // const location =
-    // this.setState({ location: localStorage.getItem("location") || "" });
-    //   storedLocation !== null ? storedLocation : this.state.location;
-    // this.setState({ location }, () => {
-    //   if (location) {
-    //     this.fetchWeather();
-    //   }
-    // });
-    // now showing
     if (storedLocation) {
       this.setState({ location: storedLocation }, this.fetchWeather);
     } else {
@@ -124,9 +101,13 @@ class App extends React.Component {
 
   componentDidUpdate(prevProps, prevState) {
     if (this.state.location !== prevState.location) {
-      // this.fetchWeather();
-
       localStorage.setItem("location", this.state.location);
+    }
+    if (
+      this.state.displayLocation.city &&
+      this.state.displayLocation.city !== prevState.displayLocation.city
+    ) {
+      document.title = `Weather: ${this.state.displayLocation.city}`;
     }
   }
   render() {
@@ -141,7 +122,6 @@ class App extends React.Component {
           Get Weather
         </button> */}
         {this.state.isLoading && <p className="loader">Loading...</p>}
-        {/* {this.state.error && <p className="error">{this.state.error}</p>} */}
         {!this.state.isLoading && this.state.locationNotFound && (
           <p>Location not found.Please try another search</p>
         )}
