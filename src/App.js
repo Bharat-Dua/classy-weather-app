@@ -100,16 +100,24 @@ class App extends React.Component {
   // useEffect []
 
   componentDidMount() {
+    //fix the app start error
     // this.fetchWeather();
     let storedLocation = localStorage.getItem("location");
-    const location =
-      storedLocation !== null ? storedLocation : this.state.location;
-    this.setState({ location }, () => {
-      if (location) {
-        this.fetchWeather();
-      }
-    });
+    //local storage not showing default value
+    // const location =
     // this.setState({ location: localStorage.getItem("location") || "" });
+    //   storedLocation !== null ? storedLocation : this.state.location;
+    // this.setState({ location }, () => {
+    //   if (location) {
+    //     this.fetchWeather();
+    //   }
+    // });
+    // now showing
+    if (storedLocation) {
+      this.setState({ location: storedLocation }, this.fetchWeather);
+    } else {
+      this.fetchWeather();
+    }
   }
 
   // useEffect [location]
