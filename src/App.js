@@ -38,14 +38,22 @@ class App extends React.Component {
     weather: {},
     displayLocation: { city: "", flag: "" },
     locationNotFound: false,
+    // error: "",
   };
+  debounceTimeout = null;
+  controller = null;
   fetchWeather = async () => {
     if (this.state.location.length < 2) return this.setState({ weather: {} });
+    if (this.controller) {
+      this.controller.abort();
+    }
+    this.controller = new AbortController();
     try {
       this.setState({ isLoading: true, locationNotFound: false });
       // 1) Getting location (geocoding)
       const geoRes = await fetch(
-        `https://geocoding-api.open-meteo.com/v1/search?name=${this.state.location}`
+        `https://geocoding-api.open-meteo.com/v1/search?name=${this.state.location}`,
+        { signal: this.controller.signal }
       );
       const geoData = await geoRes.json();
       console.log(geoData);
@@ -64,30 +72,51 @@ class App extends React.Component {
 
       // 2) Getting actual weather
       const weatherRes = await fetch(
-        `https://api.open-meteo.com/v1/forecast?latitude=${latitude}&longitude=${longitude}&timezone=${timezone}&daily=weathercode,temperature_2m_max,temperature_2m_min`
+        `https://api.open-meteo.com/v1/forecast?latitude=${latitude}&longitude=${longitude}&timezone=${timezone}&daily=weathercode,temperature_2m_max,temperature_2m_min`,
+        { signal: this.controller.signal }
       );
       const weatherData = await weatherRes.json();
       this.setState({ weather: weatherData.daily });
     } catch (err) {
-      console.error(err);
+      if (err.name !== "AbortError") {
+        console.error(err);
+        // this.setState({ error: err.message });
+      }
     } finally {
       this.setState({ isLoading: false });
     }
   };
-  setLocation = (e) => this.setState({ location: e.target.value });
+  setLocation = (e) => {
+    let location = e.target.value;
+    this.setState({ location });
+    if (this.debounceTimeout) {
+      clearTimeout(this.debounceTimeout);
+    }
+
+    this.debounceTimeout = setTimeout(() => {
+      this.fetchWeather();
+    }, 500);
+  };
   // useEffect []
 
   componentDidMount() {
     // this.fetchWeather();
-
-    this.setState({ location: localStorage.getItem("location") || "" });
+    let storedLocation = localStorage.getItem("location");
+    const location =
+      storedLocation !== null ? storedLocation : this.state.location;
+    this.setState({ location }, () => {
+      if (location) {
+        this.fetchWeather();
+      }
+    });
+    // this.setState({ location: localStorage.getItem("location") || "" });
   }
 
   // useEffect [location]
 
   componentDidUpdate(prevProps, prevState) {
     if (this.state.location !== prevState.location) {
-      this.fetchWeather();
+      // this.fetchWeather();
 
       localStorage.setItem("location", this.state.location);
     }
@@ -104,6 +133,7 @@ class App extends React.Component {
           Get Weather
         </button> */}
         {this.state.isLoading && <p className="loader">Loading...</p>}
+        {/* {this.state.error && <p className="error">{this.state.error}</p>} */}
         {!this.state.isLoading && this.state.locationNotFound && (
           <p>Location not found.Please try another search</p>
         )}
